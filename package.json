@@ -1,0 +1,41 @@
+{
+  "name": "bold-time",
+  "author": "MainFrame",
+  "version": "2.0",
+  "keywords": [
+    "pebble-watchface",
+    "simple",
+    "repebble",
+    "retro",
+    "bold",
+    "readable",
+    "big"
+  ],
+  "private": false,
+  "pebble": {
+    "uuid": "5a01fbd6-ff48-476a-a716-724e16f1e404",
+    "displayName": "Bold Time",
+    "watchapp": {
+      "watchface": true
+    },
+    "resources": {
+      "media": [
+        {
+          "file": "images/MenuImage.png",
+          "menuIcon": true,
+          "name": "IMAGE_MENU_IMAGE",
+          "storageFormat": "png",
+          "targetPlatforms": null,
+          "type": "bitmap"
+        }
+      ]
+    },
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "diorite",
+      "emery"
+    ],
+    "sdkVersion": "3"
+  }
+}
