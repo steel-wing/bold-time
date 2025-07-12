@@ -91,6 +91,18 @@ void watchface_update(Layer *layer, GContext *ctx) {
     // get current time
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
+    bool military = clock_is_24h_style();
+
+    // get the right hour digits
+    if (!military) {
+        // 13:00 - 23:00 -> 1:00 - 11:00
+        if (t->tm_hour > 12) {
+            t->tm_hour -= 12;
+        // 0:00 -> 12:00
+        } else if (t->tm_hour == 0) {
+            t->tm_hour += 12;
+        }
+    }
     
     // break it down
     int h1 = t->tm_hour / 10;
