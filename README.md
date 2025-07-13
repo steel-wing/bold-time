@@ -1,5 +1,5 @@
 # Bold Time
-Like the name says. This is a watchface designed to use up as much real estate as possible displaying the time. Colors and spacing can be editted by the user, 
+Like the name says. This is a watchface designed to use up as much real estate as possible displaying the time. Colors and spacing can be edited by the user.
 
 ## Screenshot
 
