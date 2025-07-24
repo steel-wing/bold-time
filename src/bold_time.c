@@ -1,21 +1,114 @@
 #include <pebble.h>
+#include "gcolor_definitions.h"
 
-#define BORDER 2    // border around the numbers
-#define GAP 2       // gap between numbers (best kept even)
-#define S 1         // the tail on the 6
-#define Z 0         // the tail on the 7
-#define N 1         // the tail on the 9
-#define BACKGROUND GColorBlack
-#define COLOR1 GColorWhite
-#define COLOR2 GColorLightGray
-
-// this may be bad practice, but I just wanted the big guy at the bottom, okay?
-static const bool ILLUMINATION_TABLE[10][15];
+#define SETTINGS_KEY 1
 
 // important variables for below
 Window *window;
 Layer *watchface_layer;
 GRect window_get_unobstructed_area(Window *win);
+
+// struct for holding the values of our settings
+typedef struct ClaySettings {
+    GColor background_color;
+    GColor hour_one_color;
+    GColor hour_two_color;
+    GColor minute_one_color;
+    GColor minute_two_color;
+
+    int border_thickness;
+    int gap_thickness;
+    
+    bool six_tail;
+    bool seven_tail;
+    bool nine_tail;
+} ClaySettings;
+
+// instantiation of that struct
+static ClaySettings settings;
+
+// the original values
+static void default_settings() {
+        settings.background_color = GColorBlack;
+        settings.hour_one_color = GColorWhite;
+        settings.hour_two_color = GColorLightGray;
+        settings.minute_one_color = GColorLightGray;;
+        settings.minute_two_color = GColorWhite;;
+
+        settings.border_thickness = 2;
+        settings.gap_thickness = 2;
+
+        settings.six_tail = true;
+        settings.seven_tail = false;
+        settings.nine_tail = true;
+}
+
+// necessary sacrifices
+static void load_settings() {
+  default_settings();
+  persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+// given to the pebble gods
+static void save_settings() {
+  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+#define LOAD_INT(name)                                                         \
+  Tuple *name = dict_find(iter, MESSAGE_KEY_##name);                           \
+  if (name)                                                                    \
+  settings.name = name->value->int32
+
+#define LOAD_COLOR(name)                                                       \
+  Tuple *name = dict_find(iter, MESSAGE_KEY_##name);                           \
+  if (name)                                                                    \
+  settings.name = GColorFromHEX(name->value->int32)
+
+#define LOAD_BOOL(name)                                                        \
+  Tuple *name = dict_find(iter, MESSAGE_KEY_##name);                           \
+  if (name)                                                                    \
+  settings.name = name->value->int32 == 1
+
+// handle the settings sent from the phone
+static void inbox_received_handler(DictionaryIterator *iter, void *context) {
+  LOAD_COLOR(background_color);
+  LOAD_COLOR(hour_one_color);
+  LOAD_COLOR(hour_two_color);
+  LOAD_COLOR(minute_one_color);
+  LOAD_COLOR(minute_two_color);
+
+  LOAD_INT(border_thickness);
+  LOAD_INT(gap_thickness);
+
+  LOAD_BOOL(six_tail);
+  LOAD_BOOL(seven_tail);
+  LOAD_BOOL(nine_tail);
+
+  save_settings();
+
+  layer_mark_dirty(watchface_layer);
+}
+
+// how we decide which cells to illuminate for which digits
+static const bool ILLUMINATION_TABLE[10][15] = {
+// yes I know these are the wrong datatypes but this looks better
+
+    bool S = 1; //settings.six_tail;
+    bool Z = 1; //settings.seven_tail;
+    bool N = 1; //settings.nine_tail;
+
+//   a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, 
+    {1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1},   // 0
+    {1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},   // 1
+    {1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1},   // 2         a b c
+    {1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1},   // 3         d e f
+    {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1},   // 4         g h i
+    {1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1},   // 5         j k l
+    {1, S, S, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 6         m n o        
+    {1, 1, 1, Z, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1},   // 7 
+    {1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 8
+    {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, N, N, 1},   // 9
+};
 
 // dynamically and symmetrically add pixels to cell lengths 
 int width_correction(int remainder, int index) {
@@ -116,31 +209,31 @@ void watchface_update(Layer *layer, GContext *ctx) {
     int screenheight = bounds.size.h;
 
     // set background color
-    graphics_context_set_fill_color(ctx, BACKGROUND);
+    graphics_context_set_fill_color(ctx, settings.background_color);
     graphics_fill_rect(ctx, bounds, 0, GCornerNone);
 
     // figure out number size
-    int width = (screenwidth - GAP) / 2 - BORDER;
-    int height = (screenheight - GAP) / 2 - BORDER;
+    int width = (screenwidth - settings.gap_thickness) / 2 - settings.border_thickness;
+    int height = (screenheight - settings.gap_thickness) / 2 - settings.border_thickness;
 
     // correction for if someone sets gap to an odd value. Adds 1 to bottom and right
-    int cor = (GAP % 2 == 0) ? 0 : 1;
+    int cor = (settings.gap_thickness % 2 == 0) ? 0 : 1;
 
     // set start point for first digit
-    GPoint drawpoint = GPoint(BORDER, BORDER);
+    GPoint drawpoint = GPoint(settings.border_thickness, settings.border_thickness);
 
     // write the time
-    draw_digit(ctx, drawpoint, COLOR1, width, height, h1);
-    drawpoint.x += width + GAP;
+    draw_digit(ctx, drawpoint, settings.hour_one_color, width, height, h1);
+    drawpoint.x += width + settings.gap_thickness;
 
-    draw_digit(ctx, drawpoint, COLOR2, width + cor, height, h2);
-    drawpoint.x -= width + GAP;
-    drawpoint.y += height + GAP;
+    draw_digit(ctx, drawpoint, settings.hour_two_color, width + cor, height, h2);
+    drawpoint.x -= width + settings.gap_thickness;
+    drawpoint.y += height + settings.gap_thickness;
 
-    draw_digit(ctx, drawpoint, COLOR2, width, height + cor, m1);
-    drawpoint.x += width + GAP;
+    draw_digit(ctx, drawpoint, settings.minute_one_color, width, height + cor, m1);
+    drawpoint.x += width + settings.gap_thickness;
 
-    draw_digit(ctx, drawpoint, COLOR1, width + cor, height + cor, m2);
+    draw_digit(ctx, drawpoint, settings.minute_two_color, width + cor, height + cor, m2);
 }
 
 // clear out the stuff for time reception? not really sure about this one
@@ -167,6 +260,9 @@ void window_unload(Window *window) {
 
 // init() to handle everything that has to get done at the startt
 static void init() {
+    // get our settings in
+    load_settings();
+
     // construct window and get it into position
     window = window_create();
     window_set_window_handlers(window, (WindowHandlers) {
@@ -177,6 +273,10 @@ static void init() {
 
     // subscribe us to the minute service
     tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+
+    // handle getting the settings from the phone
+    app_message_register_inbox_received(inbox_received_handler);
+    app_message_open(dict_calc_buffer_size(12), 0);
 } 
 
 // just destroys the window since we already handled the paths
@@ -190,20 +290,3 @@ int main(void) {
     app_event_loop();
     deinit();
 }
-
-// how we decide which cells to illuminate for which digits
-static const bool ILLUMINATION_TABLE[10][15] = {
-// yes I know these are the wrong datatypes but this looks better
-
-//   a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, 
-    {1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1},   // 0
-    {1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},   // 1
-    {1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1},   // 2         a b c
-    {1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1},   // 3         d e f
-    {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1},   // 4         g h i
-    {1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1},   // 5         j k l
-    {1, S, S, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 6         m n o        
-    {1, 1, 1, Z, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1},   // 7 
-    {1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 8
-    {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, N, N, 1},   // 9
-};

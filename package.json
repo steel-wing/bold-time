@@ -1,41 +1,58 @@
 {
-  "name": "bold-time",
-  "author": "MainFrame",
-  "version": "2.0",
-  "keywords": [
-    "pebble-watchface",
-    "simple",
-    "repebble",
-    "retro",
-    "bold",
-    "readable",
-    "big"
-  ],
-  "private": false,
-  "pebble": {
-    "uuid": "5a01fbd6-ff48-476a-a716-724e16f1e404",
-    "displayName": "Bold Time",
-    "watchapp": {
-      "watchface": true
-    },
-    "resources": {
-      "media": [
-        {
-          "file": "images/MenuImage.png",
-          "menuIcon": true,
-          "name": "IMAGE_MENU_IMAGE",
-          "storageFormat": "png",
-          "targetPlatforms": null,
-          "type": "bitmap"
-        }
-      ]
-    },
-    "targetPlatforms": [
-      "aplite",
-      "basalt",
-      "diorite",
-      "emery"
-    ],
-    "sdkVersion": "3"
-  }
+	"name": "bold-time",
+	"author": "MainFrame",
+	"version": "2.0",
+	"keywords": [
+		"pebble-watchface",
+		"simple",
+		"repebble",
+		"retro",
+		"bold",
+		"readable",
+		"big"
+	],
+	"private": true,
+	"dependencies": {
+		"pebble-clay": "^1.0.4"
+		},
+	"pebble": {
+		"displayName": "Bold Time",
+		"uuid": "5a01fbd6-ff48-476a-a716-724e16f1e404",
+		"sdkVersion": "3",
+		"enableMultiJS": true,
+		"targetPlatforms": [
+			"aplite",
+			"basalt",
+			"diorite",
+			"emery"
+		],
+		"watchapp": {
+			"watchface": true
+		},
+		"resources": {
+			"media": [
+				{
+					"file": "images/MenuImage.png",
+					"menuIcon": true,
+					"name": "IMAGE_MENU_IMAGE",
+					"storageFormat": "png",
+					"targetPlatforms": null,
+					"type": "bitmap"
+				}
+			]
+		},
+		"messageKeys": [
+			"background_color",
+			"hour_one_color",
+			"hour_two_color",
+			"minute_one_color",
+			"minute_two_color",
+			"border_thickness",
+			"gap_thickness",
+			"six_tail",
+			"seven_tail",
+			"nine_tail"
+		]
+	},
+	"capabilities": ["configurable"]
 }
