@@ -74,6 +74,7 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     layer_mark_dirty(watchface_layer);
 }
 
+// update the illumination table based on user settings
 static void populate_illumination_table(void) {
     // yes I know 0 and 1 aren't bools but this looks better
     bool template[10][15] = {
@@ -232,7 +233,7 @@ static void watchface_update(Layer *layer, GContext *ctx) {
     draw_digit(ctx, drawpoint, settings.minute_two_color, width + cor, height + cor, m2);
 }
 
-// clear out the stuff for time reception? not really sure about this one
+// signals to redraw the screen after a minute has occured
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
     layer_mark_dirty(window_get_root_layer(window));
 }
