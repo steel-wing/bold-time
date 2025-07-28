@@ -14,7 +14,7 @@
 	"private": true,
 	"dependencies": {
 		"pebble-clay": "^1.0.4"
-		},
+	},
 	"pebble": {
 		"displayName": "Bold Time",
 		"uuid": "5a01fbd6-ff48-476a-a716-724e16f1e404",
@@ -52,7 +52,9 @@
 			"six_tail",
 			"seven_tail",
 			"nine_tail"
+		],
+		"capabilities": [
+			"configurable"
 		]
-	},
-	"capabilities": ["configurable"]
+	}
 }

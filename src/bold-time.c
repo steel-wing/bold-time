@@ -1,31 +1,12 @@
 #include <pebble.h>
-#include "gcolor_definitions.h"
-
-#define SETTINGS_KEY 1
+#include "bold-time.h"
 
 // important variables for below
-Window *window;
-Layer *watchface_layer;
-GRect window_get_unobstructed_area(Window *win);
+static Window *window;
+static Layer *watchface_layer;
 
 // struct for holding the values of our settings
-typedef struct ClaySettings {
-    GColor background_color;
-    GColor hour_one_color;
-    GColor hour_two_color;
-    GColor minute_one_color;
-    GColor minute_two_color;
-
-    int border_thickness;
-    int gap_thickness;
-    
-    bool six_tail;
-    bool seven_tail;
-    bool nine_tail;
-} ClaySettings;
-
-// instantiation of that struct
-static ClaySettings settings;
+ClaySettings settings;
 
 // the original values
 static void default_settings() {
@@ -43,17 +24,22 @@ static void default_settings() {
         settings.nine_tail = true;
 }
 
-// necessary sacrifices
+// read settings from storage
 static void load_settings() {
-  default_settings();
-  persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+    // load default settings
+    default_settings();
+
+    // if they exist, read settings from internal storage
+    persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
 }
 
-// given to the pebble gods
+// save settings to internal storage
 static void save_settings() {
-  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+    // write the data over to internal storage
+    persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
 }
 
+// a set of clever defines so we don't have to go crazy in the next function
 #define LOAD_INT(name)                                                         \
   Tuple *name = dict_find(iter, MESSAGE_KEY_##name);                           \
   if (name)                                                                    \
@@ -71,47 +57,54 @@ static void save_settings() {
 
 // handle the settings sent from the phone
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
-  LOAD_COLOR(background_color);
-  LOAD_COLOR(hour_one_color);
-  LOAD_COLOR(hour_two_color);
-  LOAD_COLOR(minute_one_color);
-  LOAD_COLOR(minute_two_color);
+    LOAD_COLOR(background_color);
+    LOAD_COLOR(hour_one_color);
+    LOAD_COLOR(hour_two_color);
+    LOAD_COLOR(minute_one_color);
+    LOAD_COLOR(minute_two_color);
+    LOAD_INT(border_thickness);
+    LOAD_INT(gap_thickness);
+    LOAD_BOOL(six_tail);
+    LOAD_BOOL(seven_tail);
+    LOAD_BOOL(nine_tail);
+    
+    save_settings();
 
-  LOAD_INT(border_thickness);
-  LOAD_INT(gap_thickness);
-
-  LOAD_BOOL(six_tail);
-  LOAD_BOOL(seven_tail);
-  LOAD_BOOL(nine_tail);
-
-  save_settings();
-
-  layer_mark_dirty(watchface_layer);
+    // mark the layer as dirty so it gets refreshed
+    layer_mark_dirty(watchface_layer);
 }
 
-// how we decide which cells to illuminate for which digits
-static const bool ILLUMINATION_TABLE[10][15] = {
-// yes I know these are the wrong datatypes but this looks better
+static void populate_illumination_table(void) {
+    // yes I know 0 and 1 aren't bools but this looks better
+    bool template[10][15] = {
+        {1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1},
+        {1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},
+        {1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1},
+        {1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1},
+        {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1},
+        {1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1},
+        {1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1},
+        {1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1},
+        {1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},
+        {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1} 
+    };
 
-    bool S = 1; //settings.six_tail;
-    bool Z = 1; //settings.seven_tail;
-    bool N = 1; //settings.nine_tail;
+    // copy template into ILLUMINATION TABLE memory
+    memcpy(ILLUMINATION_TABLE, template, sizeof(template));
 
-//   a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, 
-    {1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1},   // 0
-    {1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},   // 1
-    {1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1},   // 2         a b c
-    {1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1},   // 3         d e f
-    {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1},   // 4         g h i
-    {1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1},   // 5         j k l
-    {1, S, S, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 6         m n o        
-    {1, 1, 1, Z, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1},   // 7 
-    {1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 8
-    {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, N, N, 1},   // 9
-};
+    // manually correct individual values following settings
+    ILLUMINATION_TABLE[6][1] = settings.six_tail;
+    ILLUMINATION_TABLE[6][2] = settings.six_tail;
+
+    ILLUMINATION_TABLE[7][3] = settings.seven_tail;
+
+    ILLUMINATION_TABLE[9][12] = settings.nine_tail;
+    ILLUMINATION_TABLE[9][13] = settings.nine_tail;
+}
+
 
 // dynamically and symmetrically add pixels to cell lengths 
-int width_correction(int remainder, int index) {
+static int width_correction(int remainder, int index) {
     if (remainder == 1 && index == 1) {
         return 1;
     } else if (remainder == 2 && (index == 0 || index == 2)) {
@@ -122,7 +115,7 @@ int width_correction(int remainder, int index) {
 }
 
 // dynamically and symmetrically add pixels to cell heights
-int height_correction(int remainder, int index) {
+static int height_correction(int remainder, int index) {
     if (remainder == 1 && index == 2) {
         return 1;
     } else if (remainder == 2 && (index == 1 || index == 3)) {
@@ -137,7 +130,7 @@ int height_correction(int remainder, int index) {
 }
 
 // draws a single digit. GPoint is top left corner of box
-void draw_digit(GContext *ctx, GPoint origin, GColor color, int width, int height, int digit) {
+static void draw_digit(GContext *ctx, GPoint origin, GColor color, int width, int height, int digit) {
     // set number color
     graphics_context_set_fill_color(ctx, color);
 
@@ -180,7 +173,7 @@ void draw_digit(GContext *ctx, GPoint origin, GColor color, int width, int heigh
 }
 
 // update the watchface (runs every time-> call)
-void watchface_update(Layer *layer, GContext *ctx) {
+static void watchface_update(Layer *layer, GContext *ctx) {
     // get current time
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
@@ -222,6 +215,9 @@ void watchface_update(Layer *layer, GContext *ctx) {
     // set start point for first digit
     GPoint drawpoint = GPoint(settings.border_thickness, settings.border_thickness);
 
+    // load user settings and get ILLUMINATION TABLE ready for reference
+    populate_illumination_table();
+
     // write the time
     draw_digit(ctx, drawpoint, settings.hour_one_color, width, height, h1);
     drawpoint.x += width + settings.gap_thickness;
@@ -259,9 +255,13 @@ void window_unload(Window *window) {
 }
 
 // init() to handle everything that has to get done at the startt
-static void init() {
+static void init(void) {
     // get our settings in
     load_settings();
+
+    // handle getting the settings from the phone
+    app_message_register_inbox_received(inbox_received_handler);
+    app_message_open(dict_calc_buffer_size(12), 0);
 
     // construct window and get it into position
     window = window_create();
@@ -273,15 +273,13 @@ static void init() {
 
     // subscribe us to the minute service
     tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
-
-    // handle getting the settings from the phone
-    app_message_register_inbox_received(inbox_received_handler);
-    app_message_open(dict_calc_buffer_size(12), 0);
 } 
 
 // just destroys the window since we already handled the paths
 static void deinit() {
-    window_destroy(window);
+    if (window) {
+        window_destroy(window);
+    }
 }
 
 // gotta love best practice
