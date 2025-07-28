@@ -15,10 +15,8 @@ static void default_settings() {
         settings.hour_two_color = GColorLightGray;
         settings.minute_one_color = GColorLightGray;;
         settings.minute_two_color = GColorWhite;;
-
         settings.border_thickness = 2;
         settings.gap_thickness = 2;
-
         settings.six_tail = true;
         settings.seven_tail = false;
         settings.nine_tail = true;
@@ -40,6 +38,7 @@ static void save_settings() {
 }
 
 // a set of clever defines so we don't have to go crazy in the next function
+// credit to https://github.com/sockeye-d/pebble-bezier
 #define LOAD_INT(name)                                                         \
   Tuple *name = dict_find(iter, MESSAGE_KEY_##name);                           \
   if (name)                                                                    \
@@ -57,6 +56,7 @@ static void save_settings() {
 
 // handle the settings sent from the phone
 static void inbox_received_handler(DictionaryIterator *iter, void *context) {
+    // load in the settings values
     LOAD_COLOR(background_color);
     LOAD_COLOR(hour_one_color);
     LOAD_COLOR(hour_two_color);
@@ -67,42 +67,38 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     LOAD_BOOL(six_tail);
     LOAD_BOOL(seven_tail);
     LOAD_BOOL(nine_tail);
-    
     save_settings();
 
-    // mark the layer as dirty so it gets refreshed
+    // mark the layer as dirty so it gets refreshed immediately
     layer_mark_dirty(watchface_layer);
 }
 
 // update the illumination table based on user settings
 static void populate_illumination_table(void) {
-    // yes I know 0 and 1 aren't bools but this looks better
     bool template[10][15] = {
-        {1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1},
-        {1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},
-        {1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1},
-        {1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1},
-        {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1},
-        {1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1},
-        {1, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1},
-        {1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1},
-        {1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},
-        {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1} 
+        //   a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, 
+        {1, 1, 1, 1, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1},   // 0
+        {1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1},   // 1
+        {1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1},   // 2         a b c
+        {1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 1},   // 3         d e f
+        {1, 0, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1},   // 4         g h i
+        {1, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1},   // 5         j k l
+        {1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 6         m n o        
+        {1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1},   // 7 
+        {1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1},   // 8
+        {1, 1, 1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1},   // 9
     };
 
-    // copy template into ILLUMINATION TABLE memory
+    // copy template into ILLUMINATION_TABLE memory
     memcpy(ILLUMINATION_TABLE, template, sizeof(template));
 
     // manually correct individual values following settings
     ILLUMINATION_TABLE[6][1] = settings.six_tail;
     ILLUMINATION_TABLE[6][2] = settings.six_tail;
-
     ILLUMINATION_TABLE[7][3] = settings.seven_tail;
-
     ILLUMINATION_TABLE[9][12] = settings.nine_tail;
     ILLUMINATION_TABLE[9][13] = settings.nine_tail;
 }
-
 
 // dynamically and symmetrically add pixels to cell lengths 
 static int width_correction(int remainder, int index) {
@@ -213,13 +209,13 @@ static void watchface_update(Layer *layer, GContext *ctx) {
     // correction for if someone sets gap to an odd value. Adds 1 to bottom and right
     int cor = (settings.gap_thickness % 2 == 0) ? 0 : 1;
 
-    // set start point for first digit
-    GPoint drawpoint = GPoint(settings.border_thickness, settings.border_thickness);
-
     // load user settings and get ILLUMINATION TABLE ready for reference
     populate_illumination_table();
 
-    // write the time
+    // set start point for first digit
+    GPoint drawpoint = GPoint(settings.border_thickness, settings.border_thickness);
+
+    // draw the time, left to right, top to bottom
     draw_digit(ctx, drawpoint, settings.hour_one_color, width, height, h1);
     drawpoint.x += width + settings.gap_thickness;
 
@@ -250,12 +246,12 @@ void window_load(Window *window) {
     layer_add_child(window_get_root_layer(window), watchface_layer);
 }
 
-// Window unload function to clean up
+// window unload function to clean up
 void window_unload(Window *window) {
     layer_destroy(watchface_layer);
 }
 
-// init() to handle everything that has to get done at the startt
+// init() to handle settings and setup
 static void init(void) {
     // get our settings in
     load_settings();
@@ -276,14 +272,14 @@ static void init(void) {
     tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
 } 
 
-// just destroys the window since we already handled the paths
+// just destroys the window once its time
 static void deinit() {
     if (window) {
         window_destroy(window);
     }
 }
 
-// gotta love best practice
+// gotta love best practice. how cute is this little guy
 int main(void) {
     init();
     app_event_loop();

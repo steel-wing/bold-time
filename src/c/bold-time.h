@@ -10,10 +10,8 @@ typedef struct ClaySettings {
     GColor hour_two_color;
     GColor minute_one_color;
     GColor minute_two_color;
-
     int border_thickness;
     int gap_thickness;
-    
     bool six_tail;
     bool seven_tail;
     bool nine_tail;

@@ -55,19 +55,21 @@ module.exports = [
                 "defaultValue": "Spacing",
             },
             {
+                "type": "text",
+                "defaultValue": "These control the outer and inner spacings.\nSmaller values are recommended, but larger values can be cute."
+            },
+            {
                 "type": "slider",
                 "messageKey": "border_thickness",
                 "defaultValue": "2",
-                "min": -20,
-                "max": 20,
+                "max": 40,
                 "label": "Border Thickness",
             },
             {
                 "type": "slider",
                 "messageKey": "gap_thickness",
                 "defaultValue": "2",
-                "min": -20,
-                "max": 20,
+                "max": 40,
                 "label": "Gap Thickness",
             },
         ],
@@ -80,22 +82,26 @@ module.exports = [
                 "defaultValue": "Alternate Design Toggles",
             },
             {
+                "type": "text",
+                "defaultValue": "These are some alternate versions of the font.\nJust a stylistic choice."
+            },
+            {
                 "type": "toggle",
                 "messageKey": "six_tail",
                 "defaultValue": true,
-                "label": "Alternate 6",
+                "label": "Tail Above 6",
             },
             {
                 "type": "toggle",
                 "messageKey": "seven_tail",
                 "defaultValue": false,
-                "label": "Alternate 7",
+                "label": "Tail Left of 7",
             },
             {
                 "type": "toggle",
                 "messageKey": "nine_tail",
                 "defaultValue": true,
-                "label": "Alternate 9",
+                "label": "Tail Below 9",
             },
         ],
     },
