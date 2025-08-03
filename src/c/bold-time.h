@@ -19,9 +19,10 @@ typedef struct ClaySettings {
 
 static bool ILLUMINATION_TABLE[10][15];
 
-static void default_settings();
-static void load_settings();
-static void save_settings();
+static void default_settings(void);
+static void load_settings(void);
+static void save_settings(void);
+static void inbox_received_handler(DictionaryIterator *iter, void *context);
 
 static void populate_illumination_table(void);
 static int width_correction(int remainder, int index);
@@ -29,7 +30,7 @@ static int height_correction(int remainder, int index);
 static void draw_digit(GContext *ctx, GPoint origin, GColor color, int width, int height, int digit);
 static void watchface_update(Layer *layer, GContext *ctx);
 
-static void inbox_received_handler(DictionaryIterator *iter, void *context);
+static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed);
 static void window_load(Window *window);
 static void window_unload(Window *window);
 static void init(void);
