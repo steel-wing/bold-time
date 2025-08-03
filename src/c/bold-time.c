@@ -13,8 +13,8 @@ static void default_settings() {
         settings.background_color = GColorBlack;
         settings.hour_one_color = GColorWhite;
         settings.hour_two_color = GColorLightGray;
-        settings.minute_one_color = GColorLightGray;;
-        settings.minute_two_color = GColorWhite;;
+        settings.minute_one_color = GColorLightGray;
+        settings.minute_two_color = GColorWhite;
         settings.border_thickness = 2;
         settings.gap_thickness = 2;
         settings.six_tail = true;
