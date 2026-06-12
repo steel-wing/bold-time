@@ -17,6 +17,7 @@ static void default_settings() {
         settings.minute_two_color = GColorWhite;
         settings.border_thickness = 2;
         settings.gap_thickness = 2;
+        settings.four_metro = false;
         settings.six_tail = true;
         settings.seven_tail = false;
         settings.nine_tail = true;
@@ -64,6 +65,7 @@ static void inbox_received_handler(DictionaryIterator *iter, void *context) {
     LOAD_COLOR(minute_two_color);
     LOAD_INT(border_thickness);
     LOAD_INT(gap_thickness);
+    LOAD_BOOL(four_metro);
     LOAD_BOOL(six_tail);
     LOAD_BOOL(seven_tail);
     LOAD_BOOL(nine_tail);
@@ -93,6 +95,8 @@ static void populate_illumination_table(void) {
     memcpy(ILLUMINATION_TABLE, template, sizeof(template));
 
     // manually correct individual values following settings
+    ILLUMINATION_TABLE[4][2] = !settings.four_metro;
+    ILLUMINATION_TABLE[4][5] = !settings.four_metro;
     ILLUMINATION_TABLE[6][1] = settings.six_tail;
     ILLUMINATION_TABLE[6][2] = settings.six_tail;
     ILLUMINATION_TABLE[7][3] = settings.seven_tail;
