@@ -87,6 +87,12 @@ module.exports = [
             },
             {
                 "type": "toggle",
+                "messageKey": "four_metro",
+                "defaultValue": false,
+                "label": "Metro Watch style 4",
+            },
+            {
+                "type": "toggle",
                 "messageKey": "six_tail",
                 "defaultValue": true,
                 "label": "Tail Above 6",
